@@ -255,23 +255,61 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
   };
 
   const applyCrop = async (images, settings) => {
+    const rect = settings.rect;
+    // If no crop rectangle is defined or it has no area, do nothing.
+    if (!rect || rect.w === 0 || rect.h === 0) {
+      console.warn('Crop tool selected without a valid crop area. Skipping crop operation.');
+      return images;
+    }
+
     return Promise.all(images.map(async img => {
-              const canvas = document.createElement('canvas');
-              const ctx = canvas.getContext('2d');
-              const image = document.createElement('img');
-      const objectUrl = URL.createObjectURL(img.blob);
-      image.src = objectUrl;
-              await new Promise(res => { image.onload = res; });
-      URL.revokeObjectURL(objectUrl);
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const image = document.createElement('img');
+        
+        // Ensure img.blob is valid before creating an object URL
+        if (!(img.blob instanceof Blob)) {
+          console.error(`Invalid data passed to applyCrop for image ${img.name}. Skipping crop.`);
+          return img;
+        }
+        
+        const objectUrl = URL.createObjectURL(img.blob);
+        image.src = objectUrl;
+        await new Promise((resolve, reject) => {
+          image.onload = resolve;
+          image.onerror = (err) => reject(new Error(`Failed to load image for cropping: ${img.name}`));
+        });
+        URL.revokeObjectURL(objectUrl);
 
-      const rect = settings.rect;
-              canvas.width = rect.w;
-              canvas.height = rect.h;
-              ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
+        // Clamp the crop rectangle to the image's dimensions to prevent errors
+        const cropX = Math.max(0, rect.x);
+        const cropY = Math.max(0, rect.y);
+        const cropW = Math.min(rect.w, image.width - cropX);
+        const cropH = Math.min(rect.h, image.height - cropY);
 
-              const blob = await new Promise(res => canvas.toBlob(res, img.blob.type));
-      return { ...img, blob };
-            }));
+        if (cropW <= 0 || cropH <= 0) {
+          console.warn(`Invalid crop for image ${img.name}, returning original.`);
+          return img;
+        }
+
+        canvas.width = cropW;
+        canvas.height = cropH;
+        ctx.drawImage(image, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+        const blob = await new Promise(res => canvas.toBlob(res, img.blob.type));
+        
+        if (!blob) {
+          console.warn(`Could not create blob for cropped image ${img.name}, returning original.`);
+          return img;
+        }
+
+        return { ...img, blob };
+      } catch(e) {
+        console.error(`An error occurred while cropping ${img.name}:`, e);
+        return img; // Return original image if any error occurs
+      }
+    }));
   };
 
   const processAllTools = async () => {
@@ -327,6 +365,12 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
       const doc = new jsPDF();
       for (let i = 0; i < results.length; i++) {
         const item = results[i];
+
+        if (!item || !(item.blob instanceof Blob)) {
+          console.warn(`Skipping invalid item in PDF generation:`, item);
+          continue;
+        }
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const imageEl = new Image();
@@ -374,7 +418,13 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
       URL.revokeObjectURL(url);
     } else {
       const zip = new JSZip();
-      results.forEach(item => zip.file(item.name, item.blob));
+      results.forEach(item => {
+        if (item && item.blob instanceof Blob) {
+          zip.file(item.name, item.blob)
+        } else {
+          console.warn(`Skipping invalid item in zip generation:`, item);
+        }
+      });
       const content = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
