@@ -345,6 +345,10 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
             processableImages = await applyCompression(processableImages, toolSettings.compress);
             break;
           case 'convert':
+            if (toolSettings.convert.format === 'pdf') {
+              console.log('[Processing] Skipping "convert to PDF" step in image pipeline. It will be handled at download.');
+              continue;
+            }
             processableImages = await applyConvert(processableImages, toolSettings.convert);
             break;
           case 'rotate':
