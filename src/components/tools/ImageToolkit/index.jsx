@@ -184,77 +184,95 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
   };
 
   const applyCompression = async (images, settings) => {
-    return Promise.all(images.map(async img => {
-              const compressedBlob = await imageCompression(img.blob, { 
-        initialQuality: settings.quality / 100,
-                useWebWorker: true 
-              });
+    console.log(`[Compression] Starting for ${images.length} images.`);
+    return Promise.all(images.map(async (img, i) => {
+      if (!(img.blob instanceof Blob)) { console.error(`[Compression] Invalid input for image ${i}.`, img); return img; }
+      console.log(`[Compression] Input ${i}:`, img.blob.type, `${(img.blob.size / 1024).toFixed(2)} KB`);
+      
+      const compressedBlob = await imageCompression(img.blob, { 
+        initialQuality: settings.quality / 100, useWebWorker: true 
+      });
+      
+      console.log(`[Compression] Output ${i}:`, compressedBlob.type, `${(compressedBlob.size / 1024).toFixed(2)} KB`);
       return { ...img, blob: compressedBlob };
-            }));
+    }));
   };
 
   const applyConvert = async (images, settings) => {
-    return Promise.all(images.map(async img => {
+    console.log(`[Convert] Starting for ${images.length} images.`);
+    return Promise.all(images.map(async (img, i) => {
+      if (!(img.blob instanceof Blob)) { console.error(`[Convert] Invalid input for image ${i}.`, img); return img; }
+      console.log(`[Convert] Input ${i}:`, img.blob.type, `${(img.blob.size / 1024).toFixed(2)} KB`);
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-                const imageEl = document.createElement('img');
-                const objectUrl = URL.createObjectURL(img.blob);
-                imageEl.src = objectUrl;
-                await new Promise(res => { imageEl.onload = res; });
-                URL.revokeObjectURL(objectUrl);
-                canvas.width = imageEl.width;
-                canvas.height = imageEl.height;
-                ctx.drawImage(imageEl, 0, 0);
+      const imageEl = document.createElement('img');
+      const objectUrl = URL.createObjectURL(img.blob);
+      imageEl.src = objectUrl;
+      await new Promise(res => { imageEl.onload = res; });
+      URL.revokeObjectURL(objectUrl);
+      canvas.width = imageEl.width;
+      canvas.height = imageEl.height;
+      ctx.drawImage(imageEl, 0, 0);
       const format = settings.format;
-                const mimeType = format === 'original' ? img.blob.type : `image/${format}`;
-                const blob = await new Promise(resolve => {
-                  if (format === 'original') resolve(img.blob);
-                  else canvas.toBlob(resolve, mimeType, 0.92);
-                });
-                const ext = format === 'original' ? img.blob.type.split('/')[1] : format;
-                return { ...img, name: img.name.replace(/(\.[^/.]+)?$/, `_converted.${ext}`), blob };
-              }));
+      const mimeType = format === 'original' ? img.blob.type : `image/${format}`;
+      const blob = await new Promise(resolve => {
+        if (format === 'original') resolve(img.blob);
+        else canvas.toBlob(resolve, mimeType, 0.92);
+      });
+      const ext = format === 'original' ? (img.blob.type.split('/')[1] || 'bin') : format;
+      const finalBlob = blob || img.blob;
+      console.log(`[Convert] Output ${i}:`, finalBlob.type, `${(finalBlob.size / 1024).toFixed(2)} KB`);
+      return { ...img, name: img.name.replace(/(\.[^/.]+)?$/, `_converted.${ext}`), blob: finalBlob };
+    }));
   };
 
   const applyRotate = async (images, settings) => {
-    return Promise.all(images.map(async img => {
-              const canvas = document.createElement('canvas');
-              const ctx = canvas.getContext('2d');
-              const image = document.createElement('img');
+    console.log(`[Rotate] Starting for ${images.length} images.`);
+    return Promise.all(images.map(async (img, i) => {
+      if (!(img.blob instanceof Blob)) { console.error(`[Rotate] Invalid input for image ${i}.`, img); return img; }
+      console.log(`[Rotate] Input ${i}:`, img.blob.type, `${(img.blob.size / 1024).toFixed(2)} KB`);
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const image = document.createElement('img');
       const objectUrl = URL.createObjectURL(img.blob);
       image.src = objectUrl;
-              await new Promise(res => { image.onload = res; });
+      await new Promise(res => { image.onload = res; });
       URL.revokeObjectURL(objectUrl);
 
-              let rotate = 0, flipH = false, flipV = false;
+      let rotate = 0, flipH = false, flipV = false;
       const option = settings.option;
-              if (option === 'rotate90') rotate = 90;
-              if (option === 'rotate180') rotate = 180;
-              if (option === 'rotate270') rotate = 270;
-              if (option === 'flipH') flipH = true;
-              if (option === 'flipV') flipV = true;
+      if (option === 'rotate90') rotate = 90;
+      if (option === 'rotate180') rotate = 180;
+      if (option === 'rotate270') rotate = 270;
+      if (option === 'flipH') flipH = true;
+      if (option === 'flipV') flipV = true;
 
-              if (rotate % 180 === 90) {
-                canvas.width = image.height;
-                canvas.height = image.width;
-              } else {
-                canvas.width = image.width;
-                canvas.height = image.height;
-              }
+      if (rotate % 180 === 90) {
+        canvas.width = image.height;
+        canvas.height = image.width;
+      } else {
+        canvas.width = image.width;
+        canvas.height = image.height;
+      }
 
-              ctx.save();
-              ctx.translate(canvas.width / 2, canvas.height / 2);
-              ctx.rotate((rotate * Math.PI) / 180);
-              ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-              ctx.drawImage(image, -image.width / 2, -image.height / 2);
-              ctx.restore();
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((rotate * Math.PI) / 180);
+      ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+      ctx.drawImage(image, -image.width / 2, -image.height / 2);
+      ctx.restore();
 
-              const blob = await new Promise(res => canvas.toBlob(res, img.blob.type));
-      return { ...img, blob };
-            }));
+      const blob = await new Promise(res => canvas.toBlob(res, img.blob.type));
+      const finalBlob = blob || img.blob;
+      console.log(`[Rotate] Output ${i}:`, finalBlob.type, `${(finalBlob.size / 1024).toFixed(2)} KB`);
+      return { ...img, blob: finalBlob };
+    }));
   };
 
   const applyCrop = async (images, settings) => {
+    console.log(`[Crop] Starting for ${images.length} images.`);
     const rect = settings.rect;
     // If no crop rectangle is defined or it has no area, do nothing.
     if (!rect || rect.w === 0 || rect.h === 0) {
@@ -262,17 +280,14 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
       return images;
     }
 
-    return Promise.all(images.map(async img => {
+    return Promise.all(images.map(async (img, i) => {
       try {
+        if (!(img.blob instanceof Blob)) { console.error(`[Crop] Invalid input for image ${i}.`, img); return img; }
+        console.log(`[Crop] Input ${i}:`, img.blob.type, `${(img.blob.size / 1024).toFixed(2)} KB`);
+        
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const image = document.createElement('img');
-        
-        // Ensure img.blob is valid before creating an object URL
-        if (!(img.blob instanceof Blob)) {
-          console.error(`Invalid data passed to applyCrop for image ${img.name}. Skipping crop.`);
-          return img;
-        }
         
         const objectUrl = URL.createObjectURL(img.blob);
         image.src = objectUrl;
@@ -300,13 +315,13 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
         const blob = await new Promise(res => canvas.toBlob(res, img.blob.type));
         
         if (!blob) {
-          console.warn(`Could not create blob for cropped image ${img.name}, returning original.`);
+          console.warn(`[Crop] Could not create blob for cropped image ${img.name}, returning original.`);
           return img;
         }
-
+        console.log(`[Crop] Output ${i}:`, blob.type, `${(blob.size / 1024).toFixed(2)} KB`);
         return { ...img, blob };
       } catch(e) {
-        console.error(`An error occurred while cropping ${img.name}:`, e);
+        console.error(`[Crop] An error occurred while cropping ${img.name}:`, e);
         return img; // Return original image if any error occurs
       }
     }));
@@ -318,14 +333,13 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
     try {
       let processableImages = files
         .filter(f => selectedImages.size === 0 || selectedImages.has(f.id))
-        .map(f => ({
-          id: f.id,
-          name: f.name,
-          type: f.type,
-          blob: f.file
-        }));
+        .map(f => ({ id: f.id, name: f.name, type: f.type, blob: f.file }));
 
-      for (const toolId of Array.from(selectedTools)) {
+      console.log('[Processing] Starting with:', processableImages);
+      const toolFunctions = Array.from(selectedTools);
+      console.log('[Processing] Applying tools:', toolFunctions);
+
+      for (const toolId of toolFunctions) {
         switch (toolId) {
           case 'compress':
             processableImages = await applyCompression(processableImages, toolSettings.compress);
@@ -346,6 +360,7 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
             break;
         }
       }
+      console.log('[Processing] Finished. Results:', processableImages);
       return processableImages;
     } catch (e) {
       console.error(e);
@@ -491,7 +506,7 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
             
             <div className="flex justify-center">
               <motion.div 
-                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 auto-rows-fr"
+                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
                 initial="hidden"
                 animate="visible"
                 variants={{
@@ -524,7 +539,7 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
         </h2>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {FREE_TOOLS.map(tool => {
             const isSelected = selectedTools.has(tool.id);
             return (
