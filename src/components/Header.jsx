@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Navbar from './Navbar';
 import { FiMenu, FiX } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
 
 const Header = ({ darkMode, setDarkMode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,8 +12,10 @@ const Header = ({ darkMode, setDarkMode }) => {
       <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
         {/* Logo and Title */}
         <div className="flex-1 flex items-center justify-start space-x-3">
-          <img src={logoUrl} alt="ImageWhiz Logo" className="h-10 w-10" />
-          <h1 className="text-2xl font-bold text-dark-text-primary">ImageWhiz</h1>
+          <Link to="/" aria-label="Home" className="flex items-center">
+            <img src={logoUrl} alt="ImageWhiz Logo" className="h-10 w-10" />
+            <h1 className="text-2xl font-bold text-dark-text-primary">ImageWhiz</h1>
+          </Link>
         </div>
 
         {/* Desktop Navbar */}

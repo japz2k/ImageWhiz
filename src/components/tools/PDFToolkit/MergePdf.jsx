@@ -17,7 +17,7 @@ const SortablePdfItem = ({ id, file, onRemove }) => {
       <FiFile className="text-red-500 flex-shrink-0" />
       <span className="flex-1 text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
       <span className="text-xs text-slate-500 dark:text-slate-400">{(file.size / 1024).toFixed(1)} KB</span>
-      <button onClick={() => onRemove(id)} className="p-1 text-slate-500 hover:text-red-500"><FiX /></button>
+      <button onClick={() => onRemove(id)} className="p-1 text-slate-500 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-400" aria-label="Remove file"><FiX /></button>
     </div>
   );
 };
@@ -97,42 +97,50 @@ export default function MergePdf({ darkMode }) {
   };
 
   return (
-    <div className="space-y-6">
-      <div {...getRootProps()} className={`p-10 border-2 border-dashed rounded-xl text-center cursor-pointer transition-colors
-        ${isDragActive ? 'border-primary bg-primary/10' : 'border-slate-400/80 hover:border-primary'}`}>
-        <input {...getInputProps()} />
-        <FiUploadCloud className="mx-auto text-4xl text-slate-500 dark:text-slate-400 mb-2" />
-        <p className="font-semibold text-slate-700 dark:text-slate-300">Drag & drop some PDF files here, or click to select</p>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Only .pdf files will be accepted</p>
-      </div>
-
-      {files.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-200">Files to Merge ({files.length})</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Drag and drop the files to set the merge order.</p>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={files.map(f => f.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2">
-                {files.map(({ id, file }) => <SortablePdfItem key={id} id={id} file={file} onRemove={removeFile} />)}
-              </div>
-            </SortableContext>
-          </DndContext>
+    <div>
+      <div className="space-y-6">
+        <div {...getRootProps()} className={`p-10 border-2 border-dashed rounded-xl text-center cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-primary
+          ${isDragActive ? 'border-primary bg-primary/10' : 'border-slate-400/80 hover:border-primary'}`} aria-label="Add PDF files" tabIndex={0}>
+          <input {...getInputProps()} aria-label="Upload PDF files" />
+          <FiUploadCloud className="mx-auto text-4xl text-slate-500 dark:text-slate-400 mb-2 transition-transform group-hover:scale-110" />
+          <p className="font-semibold text-slate-700 dark:text-slate-300">Drag & drop some PDF files here, or click to select</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Only .pdf files will be accepted</p>
         </div>
-      )}
 
-      {error && <div className="p-3 rounded-lg bg-red-100 border border-red-400 text-red-700">{error}</div>}
+        {files.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-200">Files to Merge ({files.length})</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Drag and drop the files to set the merge order.</p>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={files.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {files.map(({ id, file }) => <SortablePdfItem key={id} id={id} file={file} onRemove={removeFile} />)}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
+        )}
 
-      <div className="flex justify-end pt-4">
-        <button
-          onClick={handleMerge}
-          disabled={files.length < 2 || isProcessing}
-          className="px-6 py-3 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-primary-dark disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          {isProcessing ? 'Merging...' : 'Merge PDFs and Download'}
-          {isProcessing && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-          {!isProcessing && <FiCheckCircle />}
-        </button>
+        {error && <div className="p-3 rounded-lg bg-red-100 border border-red-400 text-red-700">{error}</div>}
+
+        <div className="flex justify-end pt-4">
+          <button
+            onClick={handleMerge}
+            disabled={files.length < 2 || isProcessing}
+            className="px-6 py-3 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-primary-dark disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Merge PDFs and Download"
+          >
+            {isProcessing ? 'Merging...' : 'Merge PDFs and Download'}
+            {isProcessing && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+            {!isProcessing && <FiCheckCircle />}
+          </button>
+        </div>
       </div>
+      <style>{`
+        @media (max-width: 640px) {
+          .space-y-4 > * + * { margin-top: 1rem !important; }
+        }
+      `}</style>
     </div>
   );
-} 
+}

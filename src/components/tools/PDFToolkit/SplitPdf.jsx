@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { PDFDocument } from 'pdf-lib';
 import { renderPdfToImages } from './pdfUtils';
-import { FiFile, FiUploadCloud, FiScissors, FiCheckCircle } from 'react-icons/fi';
+import { FiFile, FiUploadCloud, FiScissors, FiCheckCircle, FiX } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
 const Thumbnail = ({ src, pageNum, isSelected, onSelect }) => (
@@ -45,7 +45,7 @@ export default function SplitPdf({ darkMode }) {
         setThumbnails(images);
       } catch (e) {
         console.error("Failed to render PDF thumbnails:", e);
-        setError("Could not render the PDF. It may be corrupted or protected.");
+        setError(`Could not render the PDF. ${e && e.message ? e.message : e}`);
         setFile(null);
       } finally {
         setIsGenerating(false);
@@ -102,50 +102,59 @@ export default function SplitPdf({ darkMode }) {
   };
 
   return (
-    <div className="space-y-6">
-      {!file ? (
-        <div {...getRootProps()} className={`p-10 border-2 border-dashed rounded-xl text-center cursor-pointer transition-colors ${isDragActive ? 'border-primary bg-primary/10' : 'border-slate-400/80 hover:border-primary'}`}>
-          <input {...getInputProps()} />
-          <FiUploadCloud className="mx-auto text-4xl text-slate-500 mb-2" />
-          <p className="font-semibold text-slate-700 dark:text-slate-300">Drag & drop a single PDF here, or click to select</p>
-        </div>
-      ) : (
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-3">
-              <FiFile className="text-red-500 flex-shrink-0" />
-              <span className="font-medium text-slate-700 dark:text-slate-300">{file.name}</span>
-            </div>
-            <button onClick={() => setFile(null)} className="font-bold text-slate-500 hover:text-red-500">Change File</button>
+    <div>
+      <div className="space-y-6">
+        {!file ? (
+          <div {...getRootProps()} className={`p-10 border-2 border-dashed rounded-xl text-center cursor-pointer transition-colors ${isDragActive ? 'border-primary bg-primary/10' : 'border-slate-400/80 hover:border-primary'}`}>
+            <input {...getInputProps()} />
+            <FiUploadCloud className="mx-auto text-4xl text-slate-500 mb-2" />
+            <p className="font-semibold text-slate-700 dark:text-slate-300">Drag & drop a single PDF here, or click to select</p>
           </div>
-          
-          {isGenerating && <div className="text-center p-8"><div className="w-8 h-8 mx-auto border-4 border-primary border-t-transparent rounded-full animate-spin"></div><p className="mt-2">Generating Thumbnails...</p></div>}
-          
-          {thumbnails.length > 0 &&
-            <div>
-              <p className="text-center text-sm text-slate-600 dark:text-slate-400 mb-4">Click on the pages to select them for your new PDF.</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {thumbnails.map((src, index) => (
-                  <Thumbnail key={index} src={src} pageNum={index + 1} isSelected={selectedPages.has(index)} onSelect={togglePageSelection} />
-                ))}
+        ) : (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-3">
+                <FiFile className="text-red-500 flex-shrink-0" />
+                <span className="font-medium text-slate-700 dark:text-slate-300">{file.name}</span>
               </div>
+              <button onClick={() => setFile(null)} className="p-1 text-slate-500 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-400" aria-label="Remove file"><FiX /></button>
             </div>
-          }
+            
+            {isGenerating && <div className="text-center p-8"><div className="w-8 h-8 mx-auto border-4 border-primary border-t-transparent rounded-full animate-spin"></div><p className="mt-2">Generating Thumbnails...</p></div>}
+            
+            {thumbnails.length > 0 &&
+              <div>
+                <p className="text-center text-sm text-slate-600 dark:text-slate-400 mb-4">Click on the pages to select them for your new PDF.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {thumbnails.map((src, index) => (
+                    <Thumbnail key={index} src={src} pageNum={index + 1} isSelected={selectedPages.has(index)} onSelect={togglePageSelection} />
+                  ))}
+                </div>
+              </div>
+            }
+          </div>
+        )}
+
+        {error && <div className="p-3 my-4 rounded-lg bg-red-100 border border-red-400 text-red-700">{error}</div>}
+
+        <div className="flex justify-end pt-4">
+          <button
+            onClick={handleSplit}
+            disabled={selectedPages.size === 0 || isProcessing || isGenerating}
+            className="px-6 py-3 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-primary-dark disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Split PDF and Download"
+          >
+            {isProcessing ? 'Splitting...' : 'Split PDF and Download'}
+            {isProcessing && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+            {!isProcessing && <FiCheckCircle />}
+          </button>
         </div>
-      )}
-
-      {error && <div className="p-3 my-4 rounded-lg bg-red-100 border border-red-400 text-red-700">{error}</div>}
-
-      <div className="flex justify-end pt-4">
-        <button
-          onClick={handleSplit}
-          disabled={selectedPages.size === 0 || isProcessing || isGenerating}
-          className="px-6 py-3 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-primary-dark disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          {isProcessing ? 'Splitting...' : `Split & Download (${selectedPages.size} pages)`}
-          {isProcessing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <FiScissors />}
-        </button>
       </div>
+      <style>{`
+        @media (max-width: 640px) {
+          .space-y-4 > * + * { margin-top: 1rem !important; }
+        }
+      `}</style>
     </div>
   );
-} 
+}

@@ -3,13 +3,38 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  --color-accent: #6366f1;
+  --color-bg-light: #f8fafc;
+  --color-bg-dark: #0f172a;
+  --color-text-light: #1e293b;
+  --color-text-dark: #f1f5f9;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #f8fafc;
-} 
+  background-color: var(--color-bg-light);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.dark body {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-dark);
+}
+
+button, .btn {
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  border-radius: 0.5rem;
+}
+
+.card {
+  transition: box-shadow 0.2s, transform 0.2s;
+  border-radius: 1rem;
+}
+
+a {
+  transition: color 0.2s;
+}

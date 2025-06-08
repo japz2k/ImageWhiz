@@ -5,6 +5,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import ComingSoon from './components/ComingSoon';
 import PDFToolkit from './components/tools/PDFToolkit';
+import Dashboard from './components/Dashboard';
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -32,7 +33,7 @@ function App() {
         <Header darkMode={darkMode} setDarkMode={setDarkMode} />
         <main className="p-4 sm:p-6 lg:p-8 flex-grow">
           <Routes>
-            <Route path="/" element={<Navigate to="/image" replace />} />
+            <Route path="/" element={<Dashboard />} />
             <Route path="/image" element={
                 <ImageToolkit
                   files={files}

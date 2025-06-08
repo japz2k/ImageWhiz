@@ -1,8 +1,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { FiImage, FiFileText, FiGrid } from 'react-icons/fi';
+import { FiImage, FiFileText, FiGrid, FiHome } from 'react-icons/fi';
 
 const NAV_ITEMS = [
+  { to: '/', text: 'Home', icon: <FiHome /> },
   { to: '/image', text: 'Image Tools', icon: <FiImage /> },
   { to: '/pdf', text: 'PDF Tools', icon: <FiFileText /> },
   { to: '/more', text: 'More Tools', icon: <FiGrid /> },
@@ -27,6 +28,7 @@ const Navbar = ({ darkMode, isMobile = false }) => {
   if (isMobile) {
     return (
       <nav className="flex flex-col items-center space-y-2 py-2">
+        <NavItem to="/">Home</NavItem>
         <NavItem to="/image">Image Tools</NavItem>
         <NavItem to="/pdf">PDF Tools</NavItem>
         <NavItem to="/more">More Tools</NavItem>
@@ -36,9 +38,10 @@ const Navbar = ({ darkMode, isMobile = false }) => {
 
   return (
     <nav className="flex items-center space-x-2 rounded-full bg-gray-200/80 dark:bg-dark-surface/80 p-1.5 backdrop-blur-sm">
-      <NavItem to="/image">Image</NavItem>
-      <NavItem to="/pdf">PDF</NavItem>
-      <NavItem to="/more">More</NavItem>
+      <NavItem to="/"><FiHome /> Home</NavItem>
+      <NavItem to="/image"><FiImage /> Image</NavItem>
+      <NavItem to="/pdf"><FiFileText /> PDF</NavItem>
+      <NavItem to="/more"><FiGrid /> More</NavItem>
     </nav>
   );
 };

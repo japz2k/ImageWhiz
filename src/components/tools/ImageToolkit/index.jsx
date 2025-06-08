@@ -7,6 +7,8 @@ import jsPDF from 'jspdf';
 import { FREE_TOOLS, OUTPUT_FORMATS, ROTATE_OPTIONS } from './constants.jsx';
 import { FiPlus, FiX } from 'react-icons/fi';
 import CropPreview from './CropPreview';
+import MergePdf from '../PDFToolkit/MergePdf';
+import SplitPdf from '../PDFToolkit/SplitPdf';
 
 function FileCard({ file, darkMode, isSelected, onClick, onRemove }) {
   const formatFileSize = (bytes) => {
@@ -34,11 +36,12 @@ function FileCard({ file, darkMode, isSelected, onClick, onRemove }) {
           e.stopPropagation();
           onRemove(file.id);
         }}
-        className="absolute top-2 right-2 z-10 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 z-10 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary"
         aria-label="Remove image"
         whileHover={{ scale: 1.2, backgroundColor: '#ef4444' }}
         whileTap={{ scale: 0.9 }}
-    >
+        tabIndex={0}
+      >
         <FiX size={16} />
       </motion.button>
       {isSelected && <div className="absolute inset-0 bg-primary bg-opacity-20" />}
@@ -65,7 +68,7 @@ function AddImageButton({ darkMode, getRootProps, getInputProps, isDragActive })
   return (
     <div
       {...getRootProps()}
-      className={`aspect-square flex items-center justify-center rounded-lg cursor-pointer transition-colors ${
+      className={`aspect-square flex items-center justify-center rounded-lg cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-primary ${
         isDragActive
           ? darkMode
             ? 'bg-blue-500/20 border-blue-500'
@@ -74,10 +77,12 @@ function AddImageButton({ darkMode, getRootProps, getInputProps, isDragActive })
             ? 'bg-gray-800 hover:bg-gray-700 border-gray-700'
             : 'bg-white hover:bg-gray-50 border-gray-200'
       } border-2 border-dashed`}
+      aria-label="Add images"
+      tabIndex={0}
     >
-      <input {...getInputProps()} />
+      <input {...getInputProps()} aria-label="Upload images" />
       <div className="text-center">
-        <FiPlus className={`w-8 h-8 mx-auto mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+        <FiPlus className={`w-8 h-8 mx-auto mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'} transition-transform group-hover:scale-110`} />
         <p className={`text-sm ${darkMode ? 'text-neutral' : 'text-neutral-dark/70'}`}>
           {isDragActive ? 'Drop them here!' : 'Drag & drop or click to upload'}
         </p>
@@ -209,13 +214,29 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
       const imageEl = document.createElement('img');
       const objectUrl = URL.createObjectURL(img.blob);
       imageEl.src = objectUrl;
-      await new Promise(res => { imageEl.onload = res; });
-      URL.revokeObjectURL(objectUrl);
+      await new Promise(resolve => { imageEl.onload = resolve; });
       canvas.width = imageEl.width;
       canvas.height = imageEl.height;
       ctx.drawImage(imageEl, 0, 0);
       const format = settings.format;
-      const mimeType = format === 'original' ? img.blob.type : `image/${format}`;
+      let mimeType = '';
+      switch (format) {
+        case 'jpg':
+          mimeType = 'image/jpeg';
+          break;
+        case 'png':
+          mimeType = 'image/png';
+          break;
+        case 'webp':
+          mimeType = 'image/webp';
+          break;
+        case 'pdf':
+          mimeType = 'application/pdf';
+          break;
+        case 'original':
+        default:
+          mimeType = img.blob.type;
+      }
       const blob = await new Promise(resolve => {
         if (format === 'original') resolve(img.blob);
         else canvas.toBlob(resolve, mimeType, 0.92);
@@ -223,7 +244,7 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
       const ext = format === 'original' ? (img.blob.type.split('/')[1] || 'bin') : format;
       const finalBlob = blob || img.blob;
       console.log(`[Convert] Output ${i}:`, finalBlob.type, `${(finalBlob.size / 1024).toFixed(2)} KB`);
-      return { ...img, name: img.name.replace(/(\.[^/.]+)?$/, `_converted.${ext}`), blob: finalBlob };
+      return { ...img, name: img.name.replace(/(\.[^/.]+)?$/, `_converted.${ext}`), blob: finalBlob, format: format.toUpperCase(), mimeType };
     }));
   };
 
@@ -456,6 +477,31 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
     }
   };
 
+  const PDF_TOOL_COMPONENTS = {
+    'merge-pdf': MergePdf,
+    'split-pdf': SplitPdf
+  };
+
+  const renderActiveTool = () => {
+    const tool = FREE_TOOLS.find(t => t.id === activeTool);
+    const ToolComponent = PDF_TOOL_COMPONENTS[activeTool];
+    if (ToolComponent) {
+      return <ToolComponent darkMode={darkMode} />;
+    }
+    // Generic functional stub for unimplemented tools
+    return (
+      <div className="max-w-xl mx-auto p-8 text-center">
+        <div className="flex flex-col items-center justify-center mb-6">
+          <div className="text-5xl text-primary mb-3">{tool?.icon}</div>
+          <h2 className="text-2xl font-bold mb-2">{tool?.label || 'Tool'}</h2>
+          <p className="text-gray-500 dark:text-gray-300 mb-4">{tool?.description || ''}</p>
+          <div className="mt-4 px-4 py-2 rounded-lg bg-accent text-white text-lg font-semibold inline-block animate-pulse">Coming soon!</div>
+        </div>
+        <button onClick={() => setActiveTool(null)} className="mt-8 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary">Back to PDF Toolkit</button>
+      </div>
+    );
+  };
+
   return (
     <div className="p-4 flex flex-col items-center font-sans">
       {error && (
@@ -624,15 +670,32 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
                 {activeTool === 'convert' && (
                   <div>
                     <label className="block mb-2 text-sm text-gray-700 dark:text-gray-300">Format:</label>
-                    <select
-                      value={toolSettings.convert.format}
-                      onChange={e => updateToolSettings('convert', { format: e.target.value })}
-                      className="w-full p-2 border rounded"
-                    >
-                      {OUTPUT_FORMATS.map(fmt => (
-                        <option key={fmt.id} value={fmt.id}>{fmt.label}</option>
-                      ))}
-                    </select>
+                    {/*
+  The following select and option styles ensure proper text visibility in both dark and light mode.
+  Some browsers inherit background/text from parent, so we force colors for accessibility.
+  Do not remove the bg and text classes unless you test all themes.
+*/}
+<select
+  value={toolSettings.convert.format}
+  onChange={e => updateToolSettings('convert', { format: e.target.value })}
+  className={
+    `w-full p-2 border rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ` +
+    (darkMode ? 'bg-slate-800 text-gray-100 border-slate-600' : 'bg-white text-gray-900 border-gray-300')
+  }
+  style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
+  aria-label="Select output format"
+>
+  {OUTPUT_FORMATS.map(fmt => (
+    <option
+      key={fmt.id}
+      value={fmt.id}
+      className={darkMode ? 'bg-slate-800 text-gray-100' : 'bg-white text-gray-900'}
+      style={{ backgroundColor: darkMode ? '#1e293b' : '#fff', color: darkMode ? '#f1f5f9' : '#111' }}
+    >
+      {fmt.label}
+    </option>
+  ))}
+</select>
                   </div>
                 )}
                 {activeTool === 'rotate' && (
