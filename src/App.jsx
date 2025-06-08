@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import ImageToolkit from './components/tools/ImageToolkit';
 import Header from './components/Header';
 import ComingSoon from './components/ComingSoon';
+import PDFToolkit from './components/tools/PDFToolkit';
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -39,7 +40,7 @@ function App() {
                 isPro={false} // This can be controlled by auth state later
               />
             }/>
-            <Route path="/pdf" element={<ComingSoon />} />
+            <Route path="/pdf" element={<PDFToolkit darkMode={darkMode} />} />
             <Route path="/more" element={<ComingSoon />} />
           </Routes>
         </main>
