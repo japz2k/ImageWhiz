@@ -12,7 +12,7 @@ const NavItem = ({ to, children }) => (
   <NavLink
     to={to}
     className={({ isActive }) =>
-      `block w-full text-center px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+      `block w-full text-center px-4 py-2 rounded-full text-sm font-semibold transition-colors text-gray-700 dark:text-gray-200 ${
         isActive 
           ? 'bg-primary text-white' 
           : 'hover:bg-gray-300/60 dark:hover:bg-dark-surface'

@@ -26,8 +26,16 @@ function CropPreview({ src, onCropChange, initialCrop }) {
   }
 
   const handleCropChange = (pixelCrop, percentCrop) => {
+    // The crop preview component uses 'width' and 'height' but our processing
+    // pipeline expects 'w' and 'h'. We'll transform it here before sending it up.
+    const transformedCrop = {
+      x: pixelCrop.x,
+      y: pixelCrop.y,
+      w: pixelCrop.width,
+      h: pixelCrop.height,
+    };
     setCrop(percentCrop);
-    onCropChange(pixelCrop);
+    onCropChange(transformedCrop);
   };
 
   return (
