@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { PDF_TOOLS } from './constants';
 import ComingSoon from '../../ComingSoon';
+import MergePdf from './MergePdf';
+import SplitPdf from './SplitPdf';
 
 const PDFToolCard = ({ tool, onClick }) => (
   <motion.div
@@ -24,6 +26,17 @@ const PDFToolCard = ({ tool, onClick }) => (
 export default function PDFToolkit({ darkMode }) {
   const [activeTool, setActiveTool] = useState(null);
 
+  const renderActiveTool = () => {
+    switch (activeTool) {
+      case 'merge-pdf':
+        return <MergePdf darkMode={darkMode} />;
+      case 'split-pdf':
+        return <SplitPdf darkMode={darkMode} />;
+      default:
+        return <ComingSoon />;
+    }
+  };
+
   if (activeTool) {
     return (
       <div>
@@ -35,7 +48,7 @@ export default function PDFToolkit({ darkMode }) {
         </button>
         <div className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/50 backdrop-blur-lg border border-gray-400/80 dark:border-slate-700/50 shadow-lg">
           <h2 className="text-2xl font-bold mb-4">{PDF_TOOLS.find(t => t.id === activeTool)?.label}</h2>
-          <ComingSoon />
+          {renderActiveTool()}
         </div>
       </div>
     );
