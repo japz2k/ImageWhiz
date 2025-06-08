@@ -278,9 +278,14 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
     setError(null);
     setProcessing(true);
     try {
-      let processableImages = selectedImages.size 
-        ? files.filter(f => selectedImages.has(f.id)).map(f => ({ ...f, blob: f.file }))
-        : files.map(f => ({ ...f, blob: f.file }));
+      let processableImages = files
+        .filter(f => selectedImages.size === 0 || selectedImages.has(f.id))
+        .map(f => ({
+          id: f.id,
+          name: f.name,
+          type: f.type,
+          blob: f.file
+        }));
 
       for (const toolId of Array.from(selectedTools)) {
         switch (toolId) {
@@ -294,6 +299,9 @@ export default function ImageToolkit({ files, darkMode, onFilesChange }) {
             processableImages = await applyRotate(processableImages, toolSettings.rotate);
             break;
           case 'crop':
+            if (processableImages.length > 1) {
+              console.warn("Crop tool is applied with the same settings to all selected images in batch mode.");
+            }
             processableImages = await applyCrop(processableImages, toolSettings.crop);
             break;
           default:
